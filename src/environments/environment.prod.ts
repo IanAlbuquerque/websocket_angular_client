@@ -1,3 +1,4 @@
 export const environment = {
-  production: true
+  production: true,
+  gameClientWebsocket: 'ws://localhost:8999'
 };

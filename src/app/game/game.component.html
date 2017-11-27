@@ -1,0 +1,17 @@
+<canvas #canvas width="400" height="400"></canvas>
+<br/>
+<input type="range" min="1" max="400" [(ngModel)]="x" />
+<br/>
+<input type="range" min="1" max="400" [(ngModel)]="y" />
+
+<div class="chatbox vflexbox">
+  <div class="flex-1 chat-scroll">
+    <div *ngFor="let chatMatchData of chat">
+      {{matchChatDataToString(chatMatchData)}}
+    </div>
+  </div>
+  <div>
+    <input [(ngModel)]="chatInput" placeholder="Type here to chat..."/>
+    <div class="btn" (click)="onClickSendChat()">Send</div>
+  </div>
+</div>

@@ -1,5 +1,27 @@
-<canvas #canvas width="400" height="400"></canvas>
+<div class="main-container vflexbox" *ngIf="!isGameClientOpen()">
+  <div class="header default-padding">
+    WebSocket Game
+  </div>
+  <div class="default-padding flex-1">
+    <div class="v-item" *ngIf="isFindingMatchOpen()">
+      Finding match...
+    </div>
+    <div class="v-item">
+      <input [(ngModel)]="playerName" placeholder="Enter Player Name"/>
+    </div>
+    <div class="btn default-padding v-item"
+         [class.disabled]="isFindingMatchOpen()"
+         (click)="onClickFindMatch()">
+        Find Match
+    </div>
+  </div>
+</div>
+<div class="main-container vflexbox" *ngIf="isGameClientOpen()">
+  <app-game class="flex-1 vflexbox"></app-game>
+</div>
+
+<!-- <canvas #canvas width="400" height="400"></canvas>
 <br/>
 <input type="range" min="1" max="400" [(ngModel)]="x" />
 <br/>
-<input type="range" min="1" max="400" [(ngModel)]="y" />
+<input type="range" min="1" max="400" [(ngModel)]="y" /> -->
