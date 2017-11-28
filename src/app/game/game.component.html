@@ -1,8 +1,4 @@
-<canvas #canvas width="400" height="400"></canvas>
-<br/>
-<input type="range" min="1" max="400" [(ngModel)]="x" />
-<br/>
-<input type="range" min="1" max="400" [(ngModel)]="y" />
+<canvas #canvas tabindex='1'></canvas>
 
 <div class="chatbox vflexbox">
   <div class="flex-1 chat-scroll">
@@ -10,8 +6,11 @@
       {{matchChatDataToString(chatMatchData)}}
     </div>
   </div>
-  <div>
-    <input [(ngModel)]="chatInput" placeholder="Type here to chat..."/>
+  <div class="hflexbox">
+    <form class="flex-1 hflexbox" (submit)="onClickSendChat()">
+      <input class="flex-1" [(ngModel)]="chatInput" name="chatInput" placeholder="Type here to chat..."/>
+      <button type="submit" style="display:none"></button>
+    </form>
     <div class="btn" (click)="onClickSendChat()">Send</div>
   </div>
 </div>

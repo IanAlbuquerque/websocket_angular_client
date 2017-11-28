@@ -1,5 +1,6 @@
 import { Component, OnInit, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
-import { GameClientService, MatchChatData } from '../game-client/game-client.service';
+import { GameClientService } from '../game-client/game-client.service';
+import * as Msg from '../game-client/msg';
 
 @Component({
   selector: 'app-game',
@@ -8,19 +9,28 @@ import { GameClientService, MatchChatData } from '../game-client/game-client.ser
 })
 export class GameComponent implements AfterViewInit {
 
-  public chat: MatchChatData[] = [];
+  private ownPosition: { x: number, y: number } = { x: 0, y: 0 };
+  private enemyPositions: { x: number, y: number }[] = [];
+
+  public chat: Msg.SCChat[] = [];
   public chatInput: string = '';
 
   public context: CanvasRenderingContext2D;
+  private canvasWidth = 0;
+  private canvasHeight = 0;
   @ViewChild('canvas') myCanvas: ElementRef;
 
   constructor(private gameClientService: GameClientService) {
-    this.gameClientService.onMatchChat.subscribe((matchChatData: MatchChatData) => {
+    this.gameClientService.onMatchChat.subscribe((matchChatData: Msg.SCChat) => {
       this.chat.push(matchChatData);
+    })
+    this.gameClientService.onMatchTick.subscribe((matchTick: Msg.SCMatchTick) => {
+      this.ownPosition = matchTick.ownPosition;
+      this.enemyPositions = matchTick.enemyPositions;
     })
   }
 
-  public matchChatDataToString(matchChatData: MatchChatData): string {
+  public matchChatDataToString(matchChatData: Msg.SCChat): string {
     const date = new Date(matchChatData.timestamp);
     const hours = date.getHours();
     const mins = date.getMinutes();
@@ -33,9 +43,84 @@ export class GameComponent implements AfterViewInit {
     this.chatInput = '';
   }
 
-  ngAfterViewInit() {
+  private onWindowResize(): void {
     let canvas = this.myCanvas.nativeElement;
+    this.canvasWidth = window.innerWidth;
+    this.canvasHeight = window.innerHeight;
+    canvas.width = this.canvasWidth;
+    canvas.height = this.canvasHeight;  
+  }
+
+  private onKeyDown(event: KeyboardEvent): void {
+    if (event.defaultPrevented) {
+      // Do nothing if the event was already processed
+      return;
+    }
+    switch (event.key) {
+      case 'ArrowDown':
+      case 's':
+        this.gameClientService.sendMovementStart(Msg.PlayerMovement.DOWN);
+        break;
+      case 'ArrowUp':
+      case 'w':
+      this.gameClientService.sendMovementStart(Msg.PlayerMovement.UP);
+        break;
+      case 'ArrowLeft':
+      case 'a':
+      this.gameClientService.sendMovementStart(Msg.PlayerMovement.LEFT);
+        break;
+      case 'ArrowRight':
+      case 'd':
+      this.gameClientService.sendMovementStart(Msg.PlayerMovement.RIGHT);
+        break;
+      default:
+        return;
+    }
+    event.preventDefault();
+  }
+
+  private onKeyUp(event: KeyboardEvent): void {
+    if (event.defaultPrevented) {
+      // Do nothing if the event was already processed
+      return;
+    }
+    switch (event.key) {
+      case 'ArrowDown':
+      case 's':
+        this.gameClientService.sendMovementEnd(Msg.PlayerMovement.DOWN);
+        break;
+      case 'ArrowUp':
+      case 'w':
+      this.gameClientService.sendMovementEnd(Msg.PlayerMovement.UP);
+        break;
+      case 'ArrowLeft':
+      case 'a':
+      this.gameClientService.sendMovementEnd(Msg.PlayerMovement.LEFT);
+        break;
+      case 'ArrowRight':
+      case 'd':
+      this.gameClientService.sendMovementEnd(Msg.PlayerMovement.RIGHT);
+        break;
+      default:
+        return;
+    }
+    event.preventDefault();
+  }
+
+  ngAfterViewInit() {
+    const self = this;
+    let canvas = this.myCanvas.nativeElement;
+    window.addEventListener('resize', () => {
+      self.onWindowResize();
+    }, true);
+    canvas.addEventListener('keydown', (keyboardEvent: KeyboardEvent) => {
+      self.onKeyDown(keyboardEvent);
+    }, true)
+    canvas.addEventListener('keyup', (keyboardEvent: KeyboardEvent) => {
+      self.onKeyUp(keyboardEvent);
+    }, true)
     this.context = canvas.getContext("2d");
+    this.onWindowResize();
     this.tick();
   }
 
@@ -45,18 +130,13 @@ export class GameComponent implements AfterViewInit {
     });
 
     var ctx = this.context;
-    ctx.clearRect(0, 0, 400, 400);
+    ctx.clearRect(0, 0, this.canvasWidth, this.canvasHeight);
     ctx.fillStyle = '#ff0000';
-    ctx.fillRect(100, 200, 100, 200);
-
-    // let idx = 0;
-    // // for (let position of positions) {
-    // //   ctx.fillStyle = idx === my_id ? "#ff0000" : "#0000ff";
-    // //   ctx.fillRect(position.x, position.y, 10, 10);
-    // //   idx += 1;
-    // // }
-
-    // ws.send(JSON.stringify({x: this.x, y: this.y}));
+    ctx.fillRect(this.ownPosition.x, this.ownPosition.y, 25, 25);
+    for(const enemyPosition of this.enemyPositions) {
+      ctx.fillStyle = '#0000ff';
+      ctx.fillRect(enemyPosition.x, enemyPosition.y, 25, 25);
+    }
   }
 
 }

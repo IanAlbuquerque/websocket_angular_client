@@ -1,5 +1,6 @@
 import { Injectable, EventEmitter } from '@angular/core';
 import { environment } from '../../environments/environment';
+import * as Msg from './msg';
 
 export enum ConnectionStatus {
   DISCONNECTED,
@@ -8,48 +9,18 @@ export enum ConnectionStatus {
   MATCH_IN_PROGRESS
 }
 
-export enum ServerClientMessageType {
-  FINDING_MATCH,
-  MATCH_TICK,
-  MATCH_CHAT
-}
-
-export interface ServerClientMessage {
-  type: ServerClientMessageType
-  data?: any
-}
-
-export enum ClientServerMessageType {
-  CREATE,
-  CHAT
-}
-
-export interface ClientServerMessage {
-  type: ClientServerMessageType
-  data?: any
-}
-
-export interface MatchChatData {
-  timestamp: string;
-  playerName: string;
-  text: string;
-}
-
-export interface ClientChat {
-  text: string;
-}
-
 @Injectable()
 export class GameClientService {
 
   private ws: WebSocket = undefined;
   private connectionStatus: ConnectionStatus = ConnectionStatus.DISCONNECTED;
 
-  public onMatchChat: EventEmitter<MatchChatData> = new EventEmitter<MatchChatData>();
+  public onMatchChat: EventEmitter<Msg.SCChat> = new EventEmitter<Msg.SCChat>();
+  public onMatchTick: EventEmitter<Msg.SCChat> = new EventEmitter<Msg.SCChat>();
 
   constructor() { }
 
-  private send(msg: ClientServerMessage): void {
+  private send(msg: Msg.CS): void {
     this.ws.send(JSON.stringify(msg));
   }
 
@@ -57,7 +28,11 @@ export class GameClientService {
     this.ws = new WebSocket(environment.gameClientWebsocket);
 
     this.ws.onopen = (event: Event) => {
-      this.send({ type: ClientServerMessageType.CREATE, data: { name: name }})
+      const msg: Msg.CSCreateClient = {
+        type: Msg.CSType.CSCreateClient,
+        name: name
+      }
+      this.send(msg);
       this.connectionStatus = ConnectionStatus.CONNECTED;
     };
 
@@ -66,15 +41,16 @@ export class GameClientService {
     };
 
     this.ws.onmessage = (event: MessageEvent) => {
-      const msg: ServerClientMessage = JSON.parse(event.data);
-      if (msg.type === ServerClientMessageType.FINDING_MATCH) {
+      const msg: Msg.SC = JSON.parse(event.data);
+      if (msg.type === Msg.SCType.SCFindingMatch) {
         this.connectionStatus = ConnectionStatus.FINDING_MATCH;
       }
-      if (msg.type === ServerClientMessageType.MATCH_TICK) {
+      if (msg.type === Msg.SCType.SCMatchTick) {
         this.connectionStatus = ConnectionStatus.MATCH_IN_PROGRESS;
+        this.onMatchTick.emit(msg as Msg.SCChat);
       }
-      if (msg.type === ServerClientMessageType.MATCH_CHAT) {
-        this.onMatchChat.emit(msg.data);
+      if (msg.type === Msg.SCType.SCChat) {
+        this.onMatchChat.emit(msg as Msg.SCChat);
       }
     };
   }
@@ -84,8 +60,27 @@ export class GameClientService {
   }
 
   public sendChat(text: string): void {
-    const data: ClientChat = { text: text };
-    this.send({ type: ClientServerMessageType.CHAT, data: data})
+    const data: Msg.CSChat = {
+      type: Msg.CSType.CSChat,
+      text: text 
+    };
+    this.send(data);
+  }
+
+  public sendMovementStart(movement: Msg.PlayerMovement): void {
+    const data: Msg.CSMoveStart = {
+      type: Msg.CSType.CSMoveStart,
+      movement: movement
+    };
+    this.send(data); 
+  }
+  
+  public sendMovementEnd(movement: Msg.PlayerMovement): void {
+    const data: Msg.CSMoveEnd = {
+      type: Msg.CSType.CSMoveEnd,
+      movement: movement
+    };
+    this.send(data); 
   }
 
 }
